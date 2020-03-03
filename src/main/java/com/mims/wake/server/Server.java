@@ -32,8 +32,8 @@ public class Server {
     private final Map<String, InboundQueue> inboundQueues;		// Service ID를 key로 하는 InboundQueue collection
     private final OutboundQueueManager outboundQueueManager;	// OutboundQueue 인스턴스 라이프사이클 관리자
 
-    private OutboundQueueChecker outboundQueueChecker;	// OutboundQueue 상태 모니터링 쓰레드
-    private InboundQueueChecker inboundQueueChecker;	// InboundQueue 상태 모니터링 쓰레드
+    private OutboundQueueChecker outboundQueueChecker;			// OutboundQueue 상태 모니터링 쓰레드
+    private InboundQueueChecker inboundQueueChecker;			// InboundQueue 상태 모니터링 쓰레드
     private InboundTcpSocketServer inboundServer;				// Push 요청을 수용하는 InboundServer
 
     public Server() {
@@ -83,10 +83,10 @@ public class Server {
         inboundQueueChecker.start();
 
         // startup InboundServer
-        if (!embedded) {
-            inboundServer = new InboundTcpSocketServer(baseProperty.getInboundServerPort());
-            inboundServer.startup(inboundQueues);
-        }
+		if (!embedded) {
+			inboundServer = new InboundTcpSocketServer(baseProperty.getInboundServerPort());
+			inboundServer.startup(inboundQueues);
+		}
 
         LOG.info("[simple-push-server] startup complete....");
 

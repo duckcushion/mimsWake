@@ -37,7 +37,8 @@ public class FileChannel implements Channel {
 			String token = commonUtil.pathToken();
 			String path = System.getProperty("user.dir") + token + subPath;
 			commonUtil.makeFolder(path);
-			String pathFile = path + token + msg.getClientId() + ".json";
+			String fileName = msg.getGroupId() + "_" + msg.getClientId() + ".json";
+			String pathFile = path + token + fileName;
 
 			File file = new File(pathFile);
 			FileWriter fw = new FileWriter(file);
