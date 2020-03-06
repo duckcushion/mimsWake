@@ -144,7 +144,7 @@ public class InboundTcpSocketServerMsgHandler extends SimpleChannelInboundHandle
         /*  
          *  04. [FILE] 메시지 파일로 저장  
          */
-        serviceId = "server.file";
+        serviceId = "push.file";
         PushMessage pushMsg2File = new PushMessage(serviceId, pushMsg.getGroupId(), pushMsg.getClientId(), pushMsg.getMessage());
         inboundQueues.get(serviceId).enqueue(pushMsg2File);
         // [-]

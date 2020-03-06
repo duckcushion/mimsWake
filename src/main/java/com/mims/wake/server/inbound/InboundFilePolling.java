@@ -83,18 +83,18 @@ public class InboundFilePolling {
 				bufReader.close();
 				fileReader.close();
 				file.delete(); // 한번 읽어온 파일은 삭제
-				
+
 				// send to websocket
 				String serviceId = "client.websocket";
 				PushMessage pushMsgWeb = new PushMessage(serviceId, groupId, clientId, msg);
 				inboundQueues.get(serviceId).enqueue(pushMsgWeb);
-				
+
 				// send to tcpsocket
-				serviceId = "server.tcpsocket";
+				serviceId = "polling.file";
 				PushMessage pushMsgTcp = new PushMessage(serviceId, groupId, clientId, msg);
 				inboundQueues.get(serviceId).enqueue(pushMsgTcp);
 
-				LOG.info("[InboundFilePolling] Scan : " + msg);				
+				LOG.info("[InboundFilePolling] Scan : " + msg);
 			}
 		} catch (IOException e) {
 			e.printStackTrace();

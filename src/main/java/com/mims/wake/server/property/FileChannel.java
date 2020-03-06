@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 
 import com.mims.wake.common.PushMessage;
+import com.mims.wake.server.outbound.OutboundServer;
 import com.mims.wake.util.commonUtil;
 
 import io.netty.buffer.ByteBufAllocator;
@@ -26,13 +27,24 @@ public class FileChannel implements Channel {
 	
 	private final FileChannelId fcid;
 	private final String subPath;
+	private final OutboundServer outboundServer;
 	
-	public FileChannel(String serviceId, String subPath) {
+	public FileChannel(String serviceId, String subPath, OutboundServer outboundServer) {
 		this.fcid = new FileChannelId(serviceId);
 		this.subPath = subPath;
+		this.outboundServer = outboundServer;
 	}
 	
-	public void fileWrite(PushMessage msg) {
+	private void messageProcessing(PushMessage msg) throws Exception {
+		if(msg.getServiceId().equals("push.file")) {
+			filePush(msg);
+		}
+		else if(msg.getServiceId().equals("polling.file")) {
+			filePolling(msg);
+		}
+	}
+	
+	private void filePush(PushMessage msg) {
 		try {
 			String token = commonUtil.pathToken();
 			String path = System.getProperty("user.dir") + token + subPath;
@@ -48,12 +60,22 @@ public class FileChannel implements Channel {
 			e.printStackTrace();
 		}
 	}
+	
+	private void filePolling(PushMessage msg) throws Exception {
+		if(outboundServer != null)
+			outboundServer.send(msg);
+	}
 
 	@Override
 	public ChannelFuture writeAndFlush(Object msg) {
 		// TODO file put
 		 PushMessage message = (PushMessage)msg;
-		 fileWrite(message);
+		 try {
+			messageProcessing(message);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return null;
 	}
 
