@@ -44,8 +44,9 @@
     </bean>
 	<bean parent="serviceProperty">
         <property name="serviceId" value="polling.file" />
-		<property name="outboundServerPort" value="13101" />
+		<property name="outboundServerPort" value="14100" />
         <property name="outboundServerType" value="FILESOCKET" />
+		<property name="outboundServerWsUri" value="127.0.0.1" />
         <property name="outboundServerPath" value="mimsWake" />
     </bean>
 

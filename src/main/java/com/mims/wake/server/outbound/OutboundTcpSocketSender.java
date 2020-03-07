@@ -28,16 +28,16 @@ import io.netty.handler.codec.string.StringEncoder;
 import io.netty.util.CharsetUtil;
 
 /**
- * TCP 통신을 사용하는 Outbound Sender 타입
+ * TCP 통신을 사용하는 Outbound Sender
  */
 public class OutboundTcpSocketSender extends OutboundServer {
 	private static final Logger LOG = LoggerFactory.getLogger(OutboundTcpSocketSender.class);
 
-	private final PushServiceProperty property; // Push Service property
-	private final OutboundQueueManager outboundQueueManager; // OutboundQueue 인스턴스 관리자
-
-	private static final String DEFAULT_INBOUND_SERVER_HOST = "127.0.0.1";
-	private static final int DEFAULT_INBOUND_SERVER_PORT = 13101;
+	private final PushServiceProperty property; 				// Push Service property
+	private final OutboundQueueManager outboundQueueManager; 	// OutboundQueue 인스턴스 관리자
+	
+	private String inboundServerHost;
+	private int inboundServerPort;
 
 	/**
 	 * constructor with parameters
@@ -49,6 +49,8 @@ public class OutboundTcpSocketSender extends OutboundServer {
 		super(property);
 		this.property = property;
 		this.outboundQueueManager = outboundQueueManager;
+		this.inboundServerHost = property.getOutboundServerWsUri().replaceAll("/", "");
+		this.inboundServerPort = property.getOutboundServerPort();
 	}
 
 	@Override
@@ -82,10 +84,6 @@ public class OutboundTcpSocketSender extends OutboundServer {
 		String serviceId = msg.getServiceId();
 		String groupId = msg.getGroupId();
 		String clientId = msg.getClientId();
-
-		String inboundServerHost = System.getProperty("inboundServerHost", DEFAULT_INBOUND_SERVER_HOST);
-		int inboundServerPort = Integer
-				.parseInt(System.getProperty("inboundServerPort", String.valueOf(DEFAULT_INBOUND_SERVER_PORT)));
 
 		EventLoopGroup group = new NioEventLoopGroup();
 		try {
