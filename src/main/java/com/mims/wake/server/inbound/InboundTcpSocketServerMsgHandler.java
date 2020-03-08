@@ -18,6 +18,7 @@ import com.mims.wake.server.kmtf.Field;
 import com.mims.wake.server.kmtf.KmtfMessage;
 import com.mims.wake.server.kmtf.Set;
 import com.mims.wake.server.kmtf.kmtfParser;
+import com.mims.wake.server.property.ServiceType;
 import com.mims.wake.server.queue.InboundQueue;
 import com.mims.wake.util.JsonUtil;
 
@@ -97,7 +98,7 @@ public class InboundTcpSocketServerMsgHandler extends SimpleChannelInboundHandle
 			ObjectMapper mapper = new ObjectMapper();
 			Map<String, String> mapJson = mapper.readValue(content, new TypeReference<Map<String, String>>(){});
 			String szServiceId = mapJson.get("serviceId");
-			if(szServiceId != null && szServiceId.equals("polling.file")) {
+			if(szServiceId != null && szServiceId.contains(ServiceType.FILESOCKET)) {
 				System.out.println("====================================[+] [YPK]===========================================");
 				System.out.println("========== Receive from file polling outbound server ===================================");
 				System.out.println(content);
