@@ -82,7 +82,7 @@ public class InboundFilePolling {
 				}
 				bufReader.close();
 				fileReader.close();
-				file.delete(); // 한번 읽어온 파일은 삭제
+				file.delete(); // read only once
 
 				// send to websocket
 				String serviceId = "client.websocket";

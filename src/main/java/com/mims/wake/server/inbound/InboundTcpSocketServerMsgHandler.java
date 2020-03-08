@@ -11,6 +11,8 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mims.wake.common.PushMessage;
 import com.mims.wake.server.kmtf.Field;
 import com.mims.wake.server.kmtf.KmtfMessage;
@@ -78,11 +80,6 @@ public class InboundTcpSocketServerMsgHandler extends SimpleChannelInboundHandle
 
 		ByteBuf req = (ByteBuf) msg;
 		String content = req.toString(Charset.defaultCharset());
-		
-//		System.out.println("====================================[+] [YPK]===========================================");
-//		System.out.println("============= Receive from file polling outbound server : " + content + " ==============");
-//		System.out.println(content);
-//		System.out.println("====================================[-] [YPK]===========================================");
 
 		/*
 		 * 01. [Client] Web Browser 에게 메시지를 전달 - Service ID is "client.websocket"
@@ -96,6 +93,18 @@ public class InboundTcpSocketServerMsgHandler extends SimpleChannelInboundHandle
 
 		KmtfMessage message;
 		try {
+			// [+] YPK
+			ObjectMapper mapper = new ObjectMapper();
+			Map<String, String> mapJson = mapper.readValue(content, new TypeReference<Map<String, String>>(){});
+			String szServiceId = mapJson.get("serviceId");
+			if(szServiceId != null && szServiceId.equals("polling.file")) {
+				System.out.println("====================================[+] [YPK]===========================================");
+				System.out.println("========== Receive from file polling outbound server ===================================");
+				System.out.println(content);
+				System.out.println("====================================[-] [YPK]===========================================");
+				return;
+			}
+			// [-]
 			message = kmtfParser.parseFormat(content);
 
 			System.out.println("------------------");
