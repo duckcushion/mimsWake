@@ -12,7 +12,7 @@ import org.springframework.context.annotation.ComponentScan;
 public class PushServiceProperty {
 
 	@Value("serviceId")
-    private String serviceId;				// Push Service ID
+    private String serviceId;					// Push Service ID
 	
 	@Value("inboundQueueCapacity")
     private String inboundQueueCapacity;		// Inbound Message Queue capacity
@@ -24,15 +24,11 @@ public class PushServiceProperty {
     private String outboundServerPort;			// Outbound Server listen port
     
 	//@Value("outboundServerType")
-    private ServerType outboundServerType;	// Outbound Server communication type
+    private ServerType outboundServerType;		// Outbound Server communication type
     
-	@Value("outboundServerWsUri")
-    private String outboundServerWsUri;		// Outbound Server WebSocket URI, if Outbound Server type is WEBSOCKET
+	@Value("outboundServerWsUri")				// Outbound Server TcpSocket IP / Outbound Server FileSocket SubPath
+    private String outboundServerWsUri;			// Outbound Server WebSocket URI, if Outbound Server type is WEBSOCKET
 
-	// [+] [YPK]
-	@Value("outboundServerFilePath")
-    private String outboundServerPath;		// Outbound Server Path
-	// [-]
 
     @PostConstruct
     public void afterPropertiesSet() {
@@ -51,14 +47,9 @@ public class PushServiceProperty {
         if (outboundServerType == null) {
             throw new IllegalArgumentException("The 'outboundServerType' property is null");
         }
-        if (outboundServerType == ServerType.WEBSOCKET && outboundServerWsUri == null) {
+        if (outboundServerWsUri == null) {
             throw new IllegalArgumentException("The 'outboundServerWsUri' property is null");
         }
-        // [+] [YPK]
-        if (outboundServerType.equals(ServerType.FILESOCKET) && outboundServerPath == null) {
-            throw new IllegalArgumentException("The 'outboundServerPath' property is null");
-        }
-        // [-]
     }
 
     public String getServiceId() {
@@ -107,15 +98,6 @@ public class PushServiceProperty {
         }
     }
 
-    // [+] [YPK]
-    public String getOutboundServerPath() {
-    	return this.outboundServerPath;
-    }
-    public void setOutboundServerPath(String outboundServerPath) {
-    	this.outboundServerPath = outboundServerPath;
-    }
-    // [-]
-
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -126,7 +108,6 @@ public class PushServiceProperty {
                .append(", outboundServerPort=").append(outboundServerPort)
                .append(", outboundServerType=").append(outboundServerType)
                .append(", outboundServerWsUri=").append(outboundServerWsUri)
-               .append(", outboundServerPath=").append(outboundServerPath) // [YPK]
                .append("]");
         return builder.toString();
     }

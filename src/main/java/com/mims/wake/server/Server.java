@@ -8,13 +8,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import com.mims.wake.server.inbound.InboundFilePolling;
 import com.mims.wake.server.inbound.InboundTcpSocketServer;
+import com.mims.wake.server.outbound.SendChannel;
 import com.mims.wake.server.outbound.OutboundServer;
 import com.mims.wake.server.outbound.OutboundServerFactory;
-import com.mims.wake.server.property.FileChannel;
 import com.mims.wake.server.property.PushBaseProperty;
 import com.mims.wake.server.property.PushServiceProperty;
 import com.mims.wake.server.property.ServerType;
+import com.mims.wake.server.property.ServiceType;
 import com.mims.wake.server.queue.InboundQueue;
 import com.mims.wake.server.queue.InboundQueueChecker;
 import com.mims.wake.server.queue.OutboundQueueChecker;
@@ -35,6 +37,7 @@ public class Server {
     private OutboundQueueChecker outboundQueueChecker;			// OutboundQueue 상태 모니터링 쓰레드
     private InboundQueueChecker inboundQueueChecker;			// InboundQueue 상태 모니터링 쓰레드
     private InboundTcpSocketServer inboundServer;				// Push 요청을 수용하는 InboundServer
+    private InboundFilePolling inboundFilePolling; 				// [YPK]
 
     public Server() {
         outboundServers = new HashMap<String, OutboundServer>();
@@ -55,16 +58,22 @@ public class Server {
         if (!serviceProperties.isEmpty()) {
             // 개별 Push 서비스 속성에 따라 필요한 인스턴스 생성하고 Service ID를 key로 하는 collection에 저장
             serviceProperties.forEach(property -> {
-                String serviceId = property.getServiceId();
-                outboundServers.put(serviceId, OutboundServerFactory.getInstance(property, outboundQueueManager));
-                inboundQueues.put(serviceId, new InboundQueue(serviceId, property.getInboundQueueCapacity(), outboundQueueManager));
-                outboundQueueManager.addOutboundQueueGroup(serviceId);
-                // [+] [YPK]
-                if(property.getOutboundServerType().equals(ServerType.FILESOCKET)) {
-                	FileChannel channel = new FileChannel(serviceId, property.getOutboundServerPath(), outboundServers.get(serviceId));
-                	outboundQueueManager.startOutboundQueue(property.getServiceId(), property.getInboundQueueCapacity(), channel);
-                }
-                // [-]
+				String serviceId = property.getServiceId();
+				outboundServers.put(serviceId, OutboundServerFactory.getInstance(property, outboundQueueManager));
+				inboundQueues.put(serviceId,
+						new InboundQueue(serviceId, property.getInboundQueueCapacity(), outboundQueueManager));
+				outboundQueueManager.addOutboundQueueGroup(serviceId);
+				// [+] [YPK] Push File and TCP, Polling File
+				if (serviceId.equals(ServiceType.TCPSOCKET) || serviceId.equals(ServiceType.FILE_SERVER)) {
+					SendChannel channel = new SendChannel(serviceId, property.getOutboundServerWsUri(),
+							outboundServers.get(serviceId));
+					outboundQueueManager.startOutboundQueue(property.getServiceId(), property.getInboundQueueCapacity(),
+							channel);
+				}
+				else if(serviceId.equals(ServiceType.FILE_CLIENT)) {
+					inboundFilePolling = new InboundFilePolling(1000, property.getOutboundServerWsUri());
+				}
+				// [-]
             });
         }
 
@@ -84,8 +93,14 @@ public class Server {
 
         // startup InboundServer
 		if (!embedded) {
-			inboundServer = new InboundTcpSocketServer(baseProperty.getInboundServerPort());
-			inboundServer.startup(inboundQueues);
+			// [+] [YPK] Start by server type
+			if (inboundFilePolling != null) {
+				inboundFilePolling.startup(inboundQueues);
+			} else {
+				inboundServer = new InboundTcpSocketServer(baseProperty.getInboundServerPort());
+				inboundServer.startup(inboundQueues);
+			}
+			// [-]
 		}
 
         LOG.info("[simple-push-server] startup complete....");
@@ -121,6 +136,12 @@ public class Server {
         if (outboundServers != null) {
             outboundServers.forEach((serviceId, outboundServer) -> outboundServer.shutdown());
         }
+        
+		// [+] [YPK]
+		if (inboundFilePolling != null) {
+			inboundFilePolling.shutdown();
+		}
+		// [-]
     }
 
 }
