@@ -15,7 +15,6 @@ import com.mims.wake.server.outbound.OutboundServer;
 import com.mims.wake.server.outbound.OutboundServerFactory;
 import com.mims.wake.server.property.PushBaseProperty;
 import com.mims.wake.server.property.PushServiceProperty;
-import com.mims.wake.server.property.ServerType;
 import com.mims.wake.server.property.ServiceType;
 import com.mims.wake.server.queue.InboundQueue;
 import com.mims.wake.server.queue.InboundQueueChecker;
