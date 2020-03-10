@@ -91,9 +91,10 @@ public class OutboundQueue extends Thread {
         String msgClientId = pushMessage.getClientId();
 
         // [+] [YPK]
-        if (msgServiceId != null && (msgServiceId.equals(ServiceType.TCPSOCKET) || msgServiceId.equals(ServiceType.FILE_SERVER))) {
+        if (msgServiceId != null && msgServiceId.equals(ServiceType.TCPSOCKET))
+        	return channel.isActive();
+        if (msgServiceId != null && msgServiceId.equals(ServiceType.FILE_SERVER))
             return true;
-        }
         // [-]
         if (msgServiceId == null || !msgServiceId.equals(serviceId)) {
             return false;

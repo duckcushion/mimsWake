@@ -62,7 +62,7 @@ public class Server {
 				inboundQueues.put(serviceId,
 						new InboundQueue(serviceId, property.getInboundQueueCapacity(), outboundQueueManager));
 				outboundQueueManager.addOutboundQueueGroup(serviceId);
-				// [+] [YPK] Push File and TCP, Polling File
+				// [+] [YPK] File Push and Polling
 				if (serviceId.equals(ServiceType.FILE_SERVER)) {
 					SendChannel channel = new SendChannel(serviceId, property.getOutboundServerWsUri(),
 							outboundServers.get(serviceId));
