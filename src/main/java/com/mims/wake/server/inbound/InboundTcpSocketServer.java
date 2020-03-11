@@ -47,8 +47,14 @@ public class InboundTcpSocketServer {
 	 * @param port Inbound Server listen port
 	 */
 	public InboundTcpSocketServer(PushBaseProperty property) {
-		this.host = property.getoutboundServerWsUri();
+		this.host = property.getOutboundServerWsUri();
 		this.port = property.getInboundServerPort();
+	}
+	
+	// [YPK]
+	public InboundTcpSocketServer(String host, int port) {
+		this.host = host;
+		this.port = port;
 	}
 
 	// [+] YPK
@@ -66,6 +72,10 @@ public class InboundTcpSocketServer {
 		} else {
 			connect(inboundQueues);
 		}
+	}
+	
+	public void startupFilePush(Map<String, InboundQueue> inboundQueues) {
+		connect(inboundQueues);
 	}
 	
 	public void bind(Map<String, InboundQueue> inboundQueues) {

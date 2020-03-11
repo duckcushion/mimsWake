@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mims.wake.common.PushMessage;
+import com.mims.wake.server.property.PushBaseProperty;
 import com.mims.wake.server.property.ServiceType;
 import com.mims.wake.server.queue.InboundQueue;
 import com.mims.wake.util.commonUtil;
@@ -26,9 +27,9 @@ public class InboundFilePolling {
 	private Timer timer;
 	private Map<String, InboundQueue> inboundQueues;
 
-	public InboundFilePolling(int interval, String subPath) {
-		this.interval = interval;
-		this.pathFile = getPathFile(subPath);
+	public InboundFilePolling(PushBaseProperty property) {
+		this.interval = 1000;
+		this.pathFile = getPathFile(property.getOutboundServerWsUri());
 		this.setInboundQueues(null);
 	}
 
@@ -71,11 +72,12 @@ public class InboundFilePolling {
 				pos = fname.lastIndexOf("_");
 				String groupId = fname.substring(0, pos);
 				String clientId = fname.substring(pos + 1, fname.length());
-
+				
+				// read message
+				String msg = "";
 				FileReader fileReader = new FileReader(file);
 				BufferedReader bufReader = new BufferedReader(fileReader);
 				String buff = "";
-				String msg = "";
 				while ((buff = bufReader.readLine()) != null) {
 					msg += buff;
 				}
@@ -83,20 +85,22 @@ public class InboundFilePolling {
 				fileReader.close();
 				file.delete(); // read only once
 
-				// send to websocket
-				String serviceId = ServiceType.WEBSOCKET;
-				PushMessage pushMsgWeb = new PushMessage(serviceId, groupId, clientId, msg);
-				inboundQueues.get(serviceId).enqueue(pushMsgWeb);
-
-				// send to tcpsocket
-				serviceId = ServiceType.TCPSOCKET;
-				PushMessage pushMsgTcp = new PushMessage(serviceId, groupId, clientId, msg);
-				inboundQueues.get(serviceId).enqueue(pushMsgTcp);
-
-				LOG.info("[InboundFilePolling] Scan : " + msg);
+//				// send to websocket
+//				String serviceId = ServiceType.WEBSOCKET;
+//				PushMessage pushMsgWeb = new PushMessage(serviceId, groupId, clientId, msg);
+//				inboundQueues.get(serviceId).enqueue(pushMsgWeb);
+//
+//				// send to tcpsocket
+//				serviceId = ServiceType.TCPSOCKET;
+//				PushMessage pushMsgTcp = new PushMessage(serviceId, groupId, clientId, msg);
+//				inboundQueues.get(serviceId).enqueue(pushMsgTcp);
 				
-				System.out.println("========== Outbound File Polling ===================================");
-				System.out.println(msg);
+				PushMessage pushMsg = new PushMessage("", groupId, clientId, msg);
+				inboundQueues.forEach((sid, queue) -> {
+					queue.enqueue(new PushMessage(sid, pushMsg.getGroupId(), pushMsg.getClientId(), pushMsg.getMessage()));
+				});
+
+				LOG.info("[========== InboundFilePolling ==========] Scan => Push : {}", msg);
 			}
 		} catch (IOException e) {
 			e.printStackTrace();

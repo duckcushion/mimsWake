@@ -11,6 +11,9 @@ import org.springframework.context.annotation.ComponentScan;
 @ComponentScan
 public class PushBaseProperty {
 
+	//@Value("inboundServerType")
+    private ServerType inboundServerType;			// Inbound Server Type
+	
 	@Value("inboundServerPort")
     private String inboundServerPort;				// Inbound Server listen port
 	
@@ -25,6 +28,9 @@ public class PushBaseProperty {
 
     @PostConstruct
     public void afterPropertiesSet() {
+        if (inboundServerType == null) {
+            throw new IllegalArgumentException("The 'inboundServerType' property is invalid [" + inboundServerType + "]");
+        }
         if (Integer.parseInt(inboundServerPort) <= 0) {
             throw new IllegalArgumentException("The 'inboundServerPort' property is invalid [" + inboundServerPort + "]");
         }
@@ -36,6 +42,14 @@ public class PushBaseProperty {
         }
     }
 
+	public ServerType getInboundServerType() {
+		return this.inboundServerType;
+	}
+    
+    public void setInboundServerType(ServerType type) {
+    	this.inboundServerType = type;
+    }
+    
     public int getInboundServerPort() {
         return Integer.parseInt(inboundServerPort);
     }
@@ -60,11 +74,11 @@ public class PushBaseProperty {
         this.outboundQueueCheckInterval = Integer.toString(outboundQueueCheckInterval);
     }
     
-    public String getoutboundServerWsUri() {
+    public String getOutboundServerWsUri() {
         return this.outboundServerWsUri;
     }
     
-    public void setoutboundServerWsUri(String outboundServerWsUri) {
+    public void setOutboundServerWsUri(String outboundServerWsUri) {
         this.outboundServerWsUri = outboundServerWsUri;
     }
 
@@ -72,7 +86,8 @@ public class PushBaseProperty {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append(getClass().getSimpleName()).append("[")
-               .append("inboundServerPort=").append(inboundServerPort)
+        		.append("inboundServerType=").append(inboundServerType)
+               .append(", inboundServerPort=").append(inboundServerPort)
                .append(", inboundQueueCheckInterval=").append(inboundQueueCheckInterval)
                .append(", outboundQueueCheckInterval=").append(outboundQueueCheckInterval)
                .append(", outboundServerWsUri=").append(outboundServerWsUri)

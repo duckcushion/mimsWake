@@ -79,6 +79,11 @@ public abstract class OutboundServer {
 	public void send(PushMessage msg) {
 		// do nothing
 	}
+	
+	// [YPK]
+	public PushServiceProperty getPushServiceProperty() {
+		return property;
+	}
 
 	/**
 	 * OutboundServer 인스턴스를 중지한다.<br>

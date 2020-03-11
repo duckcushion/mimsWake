@@ -41,7 +41,7 @@ public class SendChannel implements Channel {
 			System.out.println(msg);
 			tcpSend(msg);
 		}
-		else if(msg.getServiceId().equals(ServiceType.FILE_SERVER)) {
+		else if(msg.getServiceId().equals(ServiceType.FILESOCKET)) {
 			System.out.println("========== Outbound FILESOCKET Push ===================================");
 			System.out.println(msg);
 			filePush(msg);

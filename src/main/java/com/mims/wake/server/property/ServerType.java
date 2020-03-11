@@ -9,15 +9,14 @@ public enum ServerType {
 	 * TCP Socket 통신 방식
 	 */
 	TCPSOCKET,
+
 	/**
 	 * WebSocket 통신 방식
 	 */
 	WEBSOCKET,
 
-	// [+] YPK
 	/**
 	 * FileSocket
 	 */
-	FILESOCKET;
-	// [-]
+	FILESOCKET; // [YPK]
 }

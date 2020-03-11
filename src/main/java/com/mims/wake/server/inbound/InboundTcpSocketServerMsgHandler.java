@@ -158,14 +158,10 @@ public class InboundTcpSocketServerMsgHandler extends SimpleChannelInboundHandle
 		//inboundQueues.get(serviceId).enqueue(pushMsg);
 
 		/*
-		 * 02. [YPK] [Server] 다른 Server 에게 메시지를 전달
-		 */
-
-		/*
 		 * 03. [DB] Database 에 메시지 저장
 		 */
 		
-		// [YPK] 모든 Service ID 메세지 전달 
+		// [YPK] 모든 Service 메세지 전달 
 		inboundQueues.forEach((sid, queue) -> {
 			queue.enqueue(new PushMessage(sid, pushMsg.getGroupId(), pushMsg.getClientId(), pushMsg.getMessage()));
         });
