@@ -29,7 +29,6 @@ public class PushServiceProperty {
 	@Value("outboundServerWsUri")				// Inbound, Outbound Server TcpSocket IP / Outbound Server FileSocket SubPath
     private String outboundServerWsUri;			// Outbound Server WebSocket URI, if Outbound Server type is WEBSOCKET
 
-
     @PostConstruct
     public void afterPropertiesSet() {
         if (serviceId == null) {

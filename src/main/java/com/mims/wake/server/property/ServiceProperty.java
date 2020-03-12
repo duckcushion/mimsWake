@@ -1,76 +1,89 @@
 package com.mims.wake.server.property;
 
-import java.beans.XMLDecoder;
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collection;
-import java.util.Properties;
-import java.util.Vector;
+import javax.annotation.PostConstruct;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.InitializingBean;
 
-import org.springframework.core.io.FileSystemResourceLoader;
-import org.springframework.core.io.InputStreamSource;
-import org.springframework.stereotype.Service;
+public class ServiceProperty  implements InitializingBean, DisposableBean {
+    private String serviceId;					// Push Service ID
+    private String inboundQueueCapacity;		// Inbound Message Queue capacity
+    private String outboundQueueCapacity;		// Outbound Message Queue capacity
+    private String outboundServerPort;			// Outbound Server listen port
+    private ServerType outboundServerType;		// Outbound Server communication type
+    private String outboundServerWsUri;			// Inbound, Outbound Server TcpSocket IP / Outbound Server FileSocket SubPath
+    											// Outbound Server WebSocket URI, if Outbound Server type is WEBSOCKET
+    @PostConstruct
+    public void afterPropertiesSet() {
+        if (serviceId == null) {
+            throw new IllegalArgumentException("The 'serviceId' property is null");
+        }
+        if (Integer.parseInt(inboundQueueCapacity) <= 0) {
+            throw new IllegalArgumentException("The 'inboundQueueCapacity' property is invalid [" + inboundQueueCapacity + "]");
+        }
+        if (Integer.parseInt(outboundQueueCapacity) <= 0) {
+            throw new IllegalArgumentException("The 'inboundQueueCapacity' property is invalid [" + outboundQueueCapacity + "]");
+        }
+        if (Integer.parseInt(outboundServerPort) <= 0) {
+            throw new IllegalArgumentException("The 'outboundServerPort' property is invalid [" + outboundServerPort + "]");
+        }
+        if (outboundServerType == null) {
+            throw new IllegalArgumentException("The 'outboundServerType' property is null");
+        }
+        if (outboundServerWsUri == null) {
+            throw new IllegalArgumentException("The 'outboundServerWsUri' property is null");
+        }
+    }
 
-import com.mims.wake.util.commonUtil;
+    public String getServiceId() {
+        return serviceId;
+    }
+    public void setServiceId(String serviceId) {
+        this.serviceId = serviceId;
+    }
 
-@Service("prop")
-public class ServiceProperty {	
-	private Properties _properties;
-	private PushBaseProperty _baseProperty;
-	private Collection<PushServiceProperty> _serviceProperties;
-	private String _pathFile;
-	private XMLDecoder xmlDecoder;
+    public int getInboundQueueCapacity() {
+        return Integer.parseInt(inboundQueueCapacity);
+    }
+    public void setInboundQueueCapacity(int inboundQueueCapacity) {
+        this.inboundQueueCapacity = Integer.toString(inboundQueueCapacity);
+    }
 
-	public ServiceProperty() {
-		String path = System.getProperty("user.dir");
-		Vector<String> arrFile = commonUtil.getFileNames(path, "xml");
-		if (!arrFile.isEmpty())
-			_pathFile = arrFile.get(0);
+    public int getOutboundQueueCapacity() {
+        return Integer.parseInt(outboundQueueCapacity);
+    }
+    public void setOutboundQueueCapacity(int outboundQueueCapacity) {
+        this.outboundQueueCapacity = Integer.toString(outboundQueueCapacity);
+    }
+
+    public int getOutboundServerPort() {
+        return Integer.parseInt(outboundServerPort);
+    }
+    public void setOutboundServerPort(int outboundServerPort) {
+        this.outboundServerPort = Integer.toString(outboundServerPort);
+    }
+
+    public ServerType getOutboundServerType() {
+        return outboundServerType;
+    }
+    public void setOutboundServerType(ServerType outboundServerType) {
+        this.outboundServerType = outboundServerType;
+    }
+
+    public String getOutboundServerWsUri() {
+        return outboundServerWsUri;
+    }
+	public void setOutboundServerWsUri(String outboundServerWsUri) {
+		this.outboundServerWsUri = outboundServerWsUri;
+		if (this.outboundServerType == ServerType.WEBSOCKET) {
+			if (outboundServerWsUri != null && !outboundServerWsUri.startsWith("/"))
+				this.outboundServerWsUri = "/" + outboundServerWsUri;
+		}
 	}
 
-	public void loadPropFile() {
-		if(_pathFile.isEmpty())
-			return;
+	@Override
+	public void destroy() throws Exception {
+		// TODO Auto-generated method stub
 		
-		try {		
-			Properties prop = new Properties();
-			InputStream stream = new FileInputStream(_pathFile);
-
-//			FileSystemResourceLoader fileSystemResourceLoader = new FileSystemResourceLoader();
-//			Resource propResource = (Resource) fileSystemResourceLoader.getResource(_pathFile);
-//			InputStream is = ((InputStreamSource) propResource).getInputStream();
-//
-//			_properties = new Properties();
-//			_properties.load(is);
-			
-			// xml
-			prop.loadFromXML(stream);
-			String base = prop.getProperty("baseProperty");
-			System.out.println("SERVER_IP=" + prop.get("inboundServerPort"));
-			
-			stream.close();
-		} catch (IOException e) {
-
-		}
-	}
-
-	public String get(String key) {
-		return _properties.getProperty(key);
-	}
-	
-	public void XmlDecodeFromFile() {
-		try {
-			FileInputStream fis = new FileInputStream(_pathFile);
-			BufferedInputStream bis = new BufferedInputStream(fis);
-			xmlDecoder = new XMLDecoder(bis);
-			_baseProperty = (PushBaseProperty) xmlDecoder.readObject();
-			System.out.println(_baseProperty.toString());
-		} catch (IOException e) {
-
-		}
 	}
 }

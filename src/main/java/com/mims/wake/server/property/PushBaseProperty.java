@@ -11,7 +11,6 @@ import org.springframework.context.annotation.ComponentScan;
 @ComponentScan
 public class PushBaseProperty {
 
-	//@Value("inboundServerType")
     private ServerType inboundServerType;			// Inbound Server Type
 	
 	@Value("inboundServerPort")
@@ -25,6 +24,9 @@ public class PushBaseProperty {
 	
 	@Value("outboundServerWsUri")
 	private String outboundServerWsUri;				// Outbound Server Connection IP
+	
+	@Value("inboundPollingInterval")
+	private String inboundPollingInterval;			// Inbound File Polling Interval
 
     @PostConstruct
     public void afterPropertiesSet() {
@@ -39,6 +41,9 @@ public class PushBaseProperty {
         }
         if (Integer.parseInt(outboundQueueCheckInterval) <= 0) {
             throw new IllegalArgumentException("The 'outboundQueueCheckInterval' property is invalid [" + outboundQueueCheckInterval + "]");
+        }
+        if(inboundServerType == ServerType.FILESOCKET && Integer.parseInt(inboundPollingInterval) <= 0) {
+        	throw new IllegalArgumentException("The 'inboundPollingInterval' property is invalid [" + inboundPollingInterval + "]");
         }
     }
 
@@ -81,6 +86,14 @@ public class PushBaseProperty {
     public void setOutboundServerWsUri(String outboundServerWsUri) {
         this.outboundServerWsUri = outboundServerWsUri;
     }
+    
+    public int getInboundPollingInterval() {
+        return Integer.parseInt(inboundPollingInterval);
+    }
+    
+    public void setInboundPollingInterval(String interval) {
+        this.inboundPollingInterval = interval;
+    }
 
     @Override
     public String toString() {
@@ -91,6 +104,7 @@ public class PushBaseProperty {
                .append(", inboundQueueCheckInterval=").append(inboundQueueCheckInterval)
                .append(", outboundQueueCheckInterval=").append(outboundQueueCheckInterval)
                .append(", outboundServerWsUri=").append(outboundServerWsUri)
+               .append(", inboundPollingInterval=").append(inboundPollingInterval)
                .append("]");
         return builder.toString();
     }

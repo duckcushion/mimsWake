@@ -92,8 +92,8 @@ public class Server {
 				OutboundServer outboundFilePush = outboundServers.get(ServiceType.FILESOCKET);
 				if(outboundFilePush != null) {
 					PushServiceProperty prop = outboundFilePush.getPushServiceProperty();
-//					inboundFilePush = new InboundTcpSocketServer("127.0.0.1", property.getOutboundServerPort());
-//					inboundFilePush.startupFilePush(inboundQueues);
+					//inboundFilePush = new InboundTcpSocketServer("127.0.0.1", property.getOutboundServerPort());
+					//inboundFilePush.startupFilePush(inboundQueues);
 					SendChannel channel = new SendChannel(prop.getServiceId(), prop.getOutboundServerWsUri(),
 							outboundServers.get(prop.getServiceId()));
 					outboundQueueManager.startOutboundQueue(prop.getServiceId(), prop.getInboundQueueCapacity(),
@@ -107,8 +107,9 @@ public class Server {
 				return null;
 			}
 		}
-
+		System.out.println("============================================================");
         LOG.info("[simple-push-server] startup complete.... {}", type);
+        System.out.println("============================================================");
 
         return inboundQueues;
     }

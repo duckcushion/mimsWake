@@ -50,11 +50,15 @@ public class SendChannel implements Channel {
 	
 	private void filePush(PushMessage msg) {
 		try {
+			String targetPath;
+			if(commonUtil.isFullPathName(outboundServerWsUri))
+				targetPath = outboundServerWsUri;
+			else
+				targetPath = commonUtil.getCurrentPath(outboundServerWsUri);
 			String token = commonUtil.pathToken();
-			String path = System.getProperty("user.dir") + token + outboundServerWsUri;
-			commonUtil.makeFolder(path);
-			String fileName = msg.getGroupId() + "_" + msg.getClientId() + ".json";
-			String pathFile = path + token + fileName;
+			commonUtil.makeFolder(targetPath);
+			String fileName = msg.getGroupId() + "_" + msg.getClientId() + "." + ServiceType.EXE_PUSH_SIDE;
+			String pathFile = targetPath + token + fileName;
 
 			File file = new File(pathFile);
 			FileWriter fw = new FileWriter(file);
