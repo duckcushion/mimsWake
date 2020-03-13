@@ -92,7 +92,7 @@ public class Server {
 				OutboundServer outboundFilePush = outboundServers.get(ServiceType.FILESOCKET);
 				if(outboundFilePush != null) {
 					PushServiceProperty prop = outboundFilePush.getPushServiceProperty();
-					//inboundFilePush = new InboundTcpSocketServer("127.0.0.1", property.getOutboundServerPort());
+					//inboundFilePush = new InboundTcpSocketServer(prop);
 					//inboundFilePush.startupFilePush(inboundQueues);
 					SendChannel channel = new SendChannel(prop.getServiceId(), prop.getOutboundServerWsUri(),
 							outboundServers.get(prop.getServiceId()));
@@ -103,13 +103,11 @@ public class Server {
 				inboundFilePolling = new InboundFilePolling(baseProperty);
 				inboundFilePolling.startup(inboundQueues);
 			} else {
-				LOG.info("=============== Choose a server type TCPSOCKET or FILESOCKET ===============");
+				LOG.info("[Choose a server type TCPSOCKET or FILESOCKET] >>>>>>>>>>>>>>>>>>>> {}", type);
 				return null;
 			}
 		}
-		System.out.println("============================================================");
-        LOG.info("[simple-push-server] startup complete.... {}", type);
-        System.out.println("============================================================");
+        LOG.info("[simple-push-server] startup complete.... >>>>>>>>>>>>>>>>>>>> {}", type);
 
         return inboundQueues;
     }

@@ -6,7 +6,7 @@ public class ServiceType {
 	public static String WEBSOCKET = "client.websocket";
 	public static String FILESOCKET = "server.filesocket";
 
-	// File Polling Extension
+	// File Push & Polling Extension
 	public static String EXE_PUSH_SIDE = "msg";
 	public static String EXE_POLLING_SIDE = "json";
 }

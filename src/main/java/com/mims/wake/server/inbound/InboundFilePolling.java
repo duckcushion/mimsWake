@@ -4,16 +4,13 @@ package com.mims.wake.server.inbound;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.util.Map;
-import java.util.StringTokenizer;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.Vector;
-import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +54,7 @@ public class InboundFilePolling {
 			};
 
 			this.timer.schedule(timerTask, 0, this.interval);
-			LOG.info("[InboundFilePolling] started, file paht " + this.targetPath);
+			LOG.info("[InboundFilePolling] started, " + this.targetPath);
 
 		} catch (Exception e) {
 			LOG.error("[InboundFilePolling] failed to startup", e);
@@ -102,7 +99,7 @@ public class InboundFilePolling {
 							new PushMessage(sid, pushMsg.getGroupId(), pushMsg.getClientId(), pushMsg.getMessage()));
 				});
 
-				LOG.info("[========== InboundFilePolling ==========] Scan => Push : {}", msg);
+				LOG.info("[InboundFilePolling] >>>>>>>>>>>>>>>>>>>> {}", msg);
 			}
 		} catch (IOException e) {
 			e.printStackTrace();

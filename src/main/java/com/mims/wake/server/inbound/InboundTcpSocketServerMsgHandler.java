@@ -102,8 +102,7 @@ public class InboundTcpSocketServerMsgHandler extends SimpleChannelInboundHandle
 				});
 				serviceId = mapJson.get("serviceId");
 				if (serviceId != null && serviceId.contains(ServiceType.TCPSOCKET)) {
-					System.out.println("========== Receive JSON from Outbound Server ===================");
-					System.out.println(content);
+					LOG.info("[Receive JSON from Outbound Server] >>>>>>>>>>>>>>>>>>>> {}", content);
 					pushMsg.setServiceId(serviceId);
 					pushMsg.setGroupId(mapJson.get("groupId"));
 					pushMsg.setClientId(mapJson.get("clientId"));

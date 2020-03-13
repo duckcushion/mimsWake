@@ -49,18 +49,22 @@ public class MimsWakeApplication implements CommandLineRunner  {
 	public void run(String... strings) throws Exception {
 
 		Server server = new Server();
-		
+		/*
 		try (ConfigurableApplicationContext context = new ClassPathXmlApplicationContext("application-config.xml")) {
             PushBaseProperty baseProperty = context.getBean(PushBaseProperty.class);
-            Collection<PushServiceProperty> serviceProperties = context.getBeansOfType(PushServiceProperty.class).values();
-//		try {				
+            Collection<PushServiceProperty> serviceProperties = context.getBeansOfType(PushServiceProperty.class).values(); */
+		try {				
             // [YPK] get properties
-//            UserProperty prop = new UserProperty();
-//            prop.loadProp();
-//            PushBaseProperty baseProperty = prop.getBaseProperty();
-//            if(baseProperty == null)
-//            	throw new Exception();
-//            Collection<PushServiceProperty> serviceProperties = prop.getServiceProperty();
+			String propName = null;
+			if(strings.length > 0)
+				propName = strings[0];
+			
+            UserProperty prop = new UserProperty();
+            prop.readPrpoerties(propName);
+            PushBaseProperty baseProperty = prop.getBaseProperty();
+            if(baseProperty == null)
+            	throw new Exception();
+            Collection<PushServiceProperty> serviceProperties = prop.getServiceProperty();
             
             // Push 서버 모듈 기동
             if(server.startupServer(false, baseProperty, serviceProperties) == null) {

@@ -6,6 +6,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.SocketAddress;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.mims.wake.common.PushMessage;
 import com.mims.wake.server.property.ServiceType;
 import com.mims.wake.util.commonUtil;
@@ -24,6 +27,7 @@ import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 
 public class SendChannel implements Channel {
+	private static final Logger LOG = LoggerFactory.getLogger(SendChannel.class);
 	
 	private final SendChannelId fcid;
 	private final String outboundServerWsUri;
@@ -37,13 +41,11 @@ public class SendChannel implements Channel {
 	
 	private void messageHandler(PushMessage msg) {
 		if(msg.getServiceId().equals(ServiceType.TCPSOCKET)) {
-			System.out.println("========== Outbound TCPSOCKET Push ===================================");
-			System.out.println(msg);
+			LOG.info("[Outbound TCPSOCKET Push] >>>>>>>>>>>>>>>>>>>> {}", msg);
 			tcpSend(msg);
 		}
 		else if(msg.getServiceId().equals(ServiceType.FILESOCKET)) {
-			System.out.println("========== Outbound FILESOCKET Push ===================================");
-			System.out.println(msg);
+			LOG.info("[Outbound FILESOCKET Push] >>>>>>>>>>>>>>>>>>>> {}", msg);
 			filePush(msg);
 		}
 	}

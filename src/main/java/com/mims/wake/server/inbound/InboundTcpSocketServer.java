@@ -50,12 +50,6 @@ public class InboundTcpSocketServer {
 		this.host = property.getOutboundServerWsUri();
 		this.port = property.getInboundServerPort();
 	}
-	
-	// [YPK]
-	public InboundTcpSocketServer(String host, int port) {
-		this.host = host;
-		this.port = port;
-	}
 
 	// [+] YPK
 	/**
@@ -75,6 +69,7 @@ public class InboundTcpSocketServer {
 	}
 	
 	public void startupFilePush(Map<String, InboundQueue> inboundQueues) {
+		this.host = "127.0.0.1";
 		connect(inboundQueues);
 	}
 	
@@ -130,11 +125,12 @@ public class InboundTcpSocketServer {
 			future.addListener(new ChannelFutureListener() {
 				@Override
 				public void operationComplete(ChannelFuture future) throws Exception {
-					System.out.println("========== Connented TCPSOCKET Outbound Server ==========================");
+					LOG.info("[Connented Outbound TCPSOCKET Server] >>>>>>>>>>>>>>>>>>>>");
 				}
 			}).sync();
 		} catch (Exception e) {
 			e.printStackTrace();
+			LOG.error("[Cannot connent to Outbound TCPSOCKET Server] >>>>>>>>>>>>>>>>>>>>");
 		}
 	}
 	// [-] 
