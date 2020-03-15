@@ -96,6 +96,7 @@ public class InboundTcpSocketServerMsgHandler extends SimpleChannelInboundHandle
 		try {
 			message = kmtfParser.parseFormat(content);
 			if (message.getKmtfId() == null) {
+				
 				// [+] [YPK] Receive JSON
 				ObjectMapper mapper = new ObjectMapper();
 				Map<String, String> mapJson = mapper.readValue(content, new TypeReference<Map<String, String>>() {
@@ -111,7 +112,9 @@ public class InboundTcpSocketServerMsgHandler extends SimpleChannelInboundHandle
 					return;
 				}
 				// [-]
+					
 			} else {
+				
 				System.out.println("------------------");
 				System.out.println("kmtfId : " + message.getKmtfId());
 				System.out.println("setId : " + message.getSetId());
