@@ -1,7 +1,6 @@
 package com.mims.wake.server.queue;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Vector;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -14,8 +13,8 @@ public class OutboundQueueStack extends Thread {
 	private static final Logger LOG = LoggerFactory.getLogger(OutboundQueueStack.class);
 
 	private final OutboundQueueManager outboundQueueManager;
-	private final Map<Integer, PushMessage> stack;		// message stack storage
     private final BlockingQueue<PushMessage> queue;		// message queue
+    private Vector<PushMessage> stack;					// message stack storage
 
 	/**
 	 * constructor with parameters
@@ -23,7 +22,7 @@ public class OutboundQueueStack extends Thread {
 	 */
 	public OutboundQueueStack(int capacity, OutboundQueueManager outboundMngr) {
 		this.outboundQueueManager = outboundMngr;
-		this.stack = new HashMap<Integer, PushMessage>();
+		this.stack = new Vector<PushMessage>();
         this.queue = new LinkedBlockingQueue<PushMessage>(capacity);
 	}
 
@@ -33,7 +32,7 @@ public class OutboundQueueStack extends Thread {
 	 * @param msg : push message
 	 */
 	public void pushStack(PushMessage msg) {
-		stack.put(stack.size(), msg);
+		stack.add(msg);
 	}
 
 	/**
@@ -45,14 +44,17 @@ public class OutboundQueueStack extends Thread {
 		try {
 			if (serviceId == null || serviceId.isEmpty())
 				throw new Exception();
-
-			stack.forEach((num, msg) -> {
+			
+			Vector<PushMessage> stock = new Vector<PushMessage>();
+			for(int ix=0; ix < stack.size(); ++ix) {
+				PushMessage msg = stack.get(ix);
 				String sid = msg.getServiceId();
-				if (sid.equals(serviceId)) {
+				if (sid.equals(serviceId))
 					queue.offer(msg);
-					stack.remove(num);
-				}
-			});
+				else
+					stock.add(msg);
+			}
+			stack = stock;
 		} catch (Exception e) {
 			LOG.error("[OutboundQueueStack popStack] >>>>>");
 		}
@@ -70,19 +72,24 @@ public class OutboundQueueStack extends Thread {
      * @see java.lang.Thread#run()
      */
     @Override
-    public void run() {
-        while (!isInterrupted()) {
-        	PushMessage msg = null;
-            try {
-            	msg = queue.take();
-            } catch (InterruptedException e) {
-                break;
-            }
-
-            if (msg != null && outboundQueueManager != null) {
-            	outboundQueueManager.transfer(msg);
-                LOG.info("[{}] [{}] [{}] Pop Stack {}", getName(), msg.getServiceId(), msg.getClientId(), msg);
-            }
-        }
-    }
+	public void run() {
+		while (!isInterrupted()) {
+			PushMessage msg = null;
+			try {
+				msg = queue.take();
+			} catch (InterruptedException e) {
+				break;
+			}
+			
+			if (msg != null && outboundQueueManager != null) {
+				outboundQueueManager.transfer(msg);
+				LOG.info("[{}] [{}] [{}] Pop Stack {}", getName(), msg.getServiceId(), msg.getClientId(), msg);
+				try {
+					Thread.sleep(500);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
 }

@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.mims.wake.common.PushConstant;
 import com.mims.wake.common.PushMessage;
 import com.mims.wake.server.property.ServiceType;
 
@@ -21,7 +20,7 @@ public class OutboundQueueManager {
     // -OutboundQueue 그룹 내부에서는 Netty Channel 인스턴스의 ChannelId를 key로 하여 관리
     private final Map<String, Map<ChannelId, OutboundQueue>> outboundQueueGroups;
     private final OutboundQueueStack queueStack; // message stack
-
+    
     public OutboundQueueManager() {
         outboundQueueGroups = new HashMap<String, Map<ChannelId, OutboundQueue>>();
         queueStack = new OutboundQueueStack(10000, this);

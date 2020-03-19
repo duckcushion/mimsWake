@@ -141,11 +141,11 @@ public class OutboundQueue extends Thread {
                 break;
             }
 
-            if (message != null) {
-                channel.writeAndFlush(message);
-                message = null;
-            }
-        }
+			if (message != null) {
+				channel.writeAndFlush(message);
+				message = null;
+			}
+		}
 
         LOG.info("[{}] [{}] [{}] shutdown", getName(), groupId(), clientId());
     }
