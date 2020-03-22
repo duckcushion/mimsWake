@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.mims.wake.common.PushMessage;
+import com.mims.wake.server.property.PushServiceProperty;
 import com.mims.wake.server.property.ServiceType;
 
 import io.netty.channel.Channel;
@@ -19,11 +20,11 @@ public class OutboundQueueManager {
     // 서비스ID에 따른 OutboundQueue 그룹을 보관하는 collection
     // -OutboundQueue 그룹 내부에서는 Netty Channel 인스턴스의 ChannelId를 key로 하여 관리
     private final Map<String, Map<ChannelId, OutboundQueue>> outboundQueueGroups;
-    private final OutboundQueueStack queueStack; // message stack
+    private final OutboundQueueStack queueStack; // message save stack
     
     public OutboundQueueManager() {
         outboundQueueGroups = new HashMap<String, Map<ChannelId, OutboundQueue>>();
-        queueStack = new OutboundQueueStack(10000, this);
+        queueStack = new OutboundQueueStack(10000);
         queueStack.start();
     }
 
@@ -57,7 +58,7 @@ public class OutboundQueueManager {
 		synchronized (queueGroup) {
 			queueGroup.put(channel.id(), newQueue);
 			if (serviceId.equals(ServiceType.TCPSOCKET))
-				popStack(serviceId);  // pop stack message
+				popStack(serviceId, channel);  // pop stack message
 		}
 	}
 
@@ -95,10 +96,14 @@ public class OutboundQueueManager {
         }
 
         Map<ChannelId, OutboundQueue> queueGroup = outboundQueueGroups.get(serviceId);
-        // [YPK] 못보낸 메세지 보관
+        // [YPK] SOCKET 연결이 없을 때 메세시 보관
         if(queueGroup.isEmpty()) {
         	queueStack.pushStack(pushMessage);
         	return;
+        } else {
+        	// TCP는 연결 최대 허용 개수만큼 보관
+        	if(serviceId.equals(ServiceType.TCPSOCKET))
+        		queueStack.pushStack(pushMessage);
         }
         
         String clientId = pushMessage.getClientId();
@@ -136,10 +141,24 @@ public class OutboundQueueManager {
     }
     
     /**
+     * OutboundQueueStack Set maximum TCP connection number
+     */
+    public void setStackProperty(PushServiceProperty property) {
+    	queueStack.setProperty(property);
+    }
+    
+    /**
+     * OutboundQueueStack Disconnection TCP
+     */
+    public void disconnection(String serviceId) {
+    	queueStack.disconnection(serviceId);
+    }
+    
+    /**
      * OutboundQueueStack Pop Stack Message 
      */
-    public void popStack(String serviceId) {
-    	queueStack.popStack(serviceId);
+    public void popStack(String serviceId, Channel channel) {
+    	queueStack.popStack(serviceId, channel);
     }
     
     /**
