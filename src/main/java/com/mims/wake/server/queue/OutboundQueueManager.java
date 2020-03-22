@@ -25,7 +25,7 @@ public class OutboundQueueManager {
     public OutboundQueueManager() {
         outboundQueueGroups = new HashMap<String, Map<ChannelId, OutboundQueue>>();
         queueStack = new OutboundQueueStack(10000);
-        queueStack.start();
+        queueStack.startup();
     }
 
     /**
@@ -95,16 +95,9 @@ public class OutboundQueueManager {
             return;
         }
 
-        Map<ChannelId, OutboundQueue> queueGroup = outboundQueueGroups.get(serviceId);
-        // [YPK] SOCKET 연결이 없을 때 메세시 보관
-        if(queueGroup.isEmpty()) {
-        	queueStack.pushStack(pushMessage);
-        	return;
-        } else {
-        	// TCP는 연결 최대 허용 개수만큼 보관
-        	if(serviceId.equals(ServiceType.TCPSOCKET))
-        		queueStack.pushStack(pushMessage);
-        }
+		Map<ChannelId, OutboundQueue> queueGroup = outboundQueueGroups.get(serviceId);
+		// [YPK] SOCKET 연결이 없을 때 메세시 보관
+		queueStack.pushStack(pushMessage, queueGroup.isEmpty());
         
         String clientId = pushMessage.getClientId();
         if (clientId != null) {
@@ -141,7 +134,7 @@ public class OutboundQueueManager {
     }
     
     /**
-     * OutboundQueueStack Set maximum TCP connection number
+     * OutboundQueueStack Add queue stack
      */
     public void setStackProperty(PushServiceProperty property) {
     	queueStack.setProperty(property);

@@ -63,8 +63,7 @@ public class Server {
 				inboundQueues.put(serviceId,
 						new InboundQueue(serviceId, property.getInboundQueueCapacity(), outboundQueueManager));
 				outboundQueueManager.addOutboundQueueGroup(serviceId);
-				if(serviceId.equals(ServiceType.TCPSOCKET))
-					outboundQueueManager.setStackProperty(property);
+				outboundQueueManager.setStackProperty(property);
             });
         }
 

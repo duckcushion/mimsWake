@@ -127,6 +127,14 @@ public class UserProperty {
 				sprop.setOutboundServerWsUri(addr);
 				sprop.setInboundQueueCapacity(10000);
 				sprop.setOutboundQueueCapacity(10000);
+				String conNum = prop.getProperty("web.conNum");
+				if(conNum == null || conNum.isEmpty())
+					conNum = "1";
+				sprop.setOutboundConnectionNumber(conNum);
+				String clearTime = prop.getProperty("web.Qcleartime");
+				if(clearTime == null || clearTime.isEmpty())
+					clearTime = "10";
+				sprop.setOutboundQueueClearTime(clearTime);
 				mapProp.put(mapProp.size(), sprop);
 			}
 
