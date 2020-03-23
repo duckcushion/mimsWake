@@ -152,7 +152,7 @@ public class Server {
 		
 		// shutdown OutboundQueueManager
 		if(outboundQueueManager != null) {
-			outboundQueueManager.shutdown();
+			outboundQueueManager.shutdownQstack();
 		}
     }
 

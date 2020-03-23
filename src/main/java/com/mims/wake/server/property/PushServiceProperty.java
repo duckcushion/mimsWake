@@ -33,7 +33,7 @@ public class PushServiceProperty {
 	private String outboundConnectionNumber;		// Number of clients to connect to TCP
 	
 	@Value("outboundQueueClearTime")
-	private String outboundQueueClearTime;			// Queue stack clear time
+	private String outboundQueueClearTime;			// Queue stack clear time (min)
 
     @PostConstruct
     public void afterPropertiesSet() {

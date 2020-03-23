@@ -20,14 +20,14 @@ public class OutboundQueueManager {
     // 서비스ID에 따른 OutboundQueue 그룹을 보관하는 collection
     // -OutboundQueue 그룹 내부에서는 Netty Channel 인스턴스의 ChannelId를 key로 하여 관리
     private final Map<String, Map<ChannelId, OutboundQueue>> outboundQueueGroups;
-    private final OutboundQueueStack queueStack; // message save stack
+    private final OutboundQueueStack queueStack; // message queue stack
     
     public OutboundQueueManager() {
         outboundQueueGroups = new HashMap<String, Map<ChannelId, OutboundQueue>>();
         queueStack = new OutboundQueueStack(10000);
         queueStack.startup();
     }
-
+ 
     /**
      * 서비스ID에 대한 OutboundQueue 그룹을 생성한다.
      * @param serviceId 서비스ID
@@ -96,8 +96,8 @@ public class OutboundQueueManager {
         }
 
 		Map<ChannelId, OutboundQueue> queueGroup = outboundQueueGroups.get(serviceId);
-		// [YPK] SOCKET 연결이 없을 때 메세시 보관
-		queueStack.pushStack(pushMessage, queueGroup.isEmpty());
+		// SOCKET 연결이 없을 때 메세시 보관
+		queueStack.pushStack(pushMessage, queueGroup);
         
         String clientId = pushMessage.getClientId();
         if (clientId != null) {
@@ -105,7 +105,7 @@ public class OutboundQueueManager {
 				if (serviceId == ServiceType.WEBSOCKET) {
 					if (clientId.equals(queue.clientId()))
 						queue.enqueue(pushMessage);
-				} else { // [YPK]
+				} else {
 					queue.enqueue(pushMessage);
 				}
 			});
@@ -133,6 +133,10 @@ public class OutboundQueueManager {
         return Collections.unmodifiableMap(outboundQueueGroups);
     }
     
+    ////////////////////////////////////////////////////////////////////////////////
+    // Function for queue stack
+    //
+    
     /**
      * OutboundQueueStack Add queue stack
      */
@@ -155,9 +159,9 @@ public class OutboundQueueManager {
     }
     
     /**
-     * OutboundQueueStack Thread Shutdown
+     * OutboundQueueStack Shutdown
      */
-    public void shutdown() {
+    public void shutdownQstack() {
     	queueStack.shutdown();
     }
 }

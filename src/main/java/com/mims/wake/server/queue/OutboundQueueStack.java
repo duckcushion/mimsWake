@@ -1,7 +1,10 @@
 package com.mims.wake.server.queue;
 
+import java.sql.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.Vector;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -12,15 +15,22 @@ import org.slf4j.LoggerFactory;
 import com.mims.wake.common.PushMessage;
 import com.mims.wake.server.property.PushServiceProperty;
 import com.mims.wake.server.property.ServiceType;
+import com.mims.wake.util.commonUtil;
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelId;
 
 public class OutboundQueueStack extends Thread {
 	private static final Logger LOG = LoggerFactory.getLogger(OutboundQueueStack.class);
+	
+	private static int MINUTE_MS = 60000;
+	private static int HMINUTE_MS = 30000;
 
 	private final Map<String, ServiceInfo> 			serviceGroup;			// service socket
     private final BlockingQueue<ChannelInfo> 		queue;					// message queue
-    private Vector<PushMessage> 					stack;					// message stack storage
+    private Vector<MessageInfo> 					stack;					// message stack storage
+    private Timer 									timer;
+    private int										interval;
 
 	/**
 	 * constructor with parameters
@@ -29,7 +39,8 @@ public class OutboundQueueStack extends Thread {
 	public OutboundQueueStack(int capacity) {
 		this.serviceGroup = new HashMap<String, ServiceInfo>();
 		this.queue = new LinkedBlockingQueue<ChannelInfo>(capacity);
-		this.stack = new Vector<PushMessage>();
+		this.stack = new Vector<MessageInfo>();
+		this.interval = HMINUTE_MS;
 	}
 	
     /**
@@ -37,6 +48,20 @@ public class OutboundQueueStack extends Thread {
      */
     public void startup() {
         this.start();
+        
+		try {
+			this.timer = new Timer();
+			TimerTask timerTask = new TimerTask() {
+				@Override
+				public void run() {
+					clearCheck();
+				}
+			};
+
+			this.timer.schedule(timerTask, 0, this.interval);
+		} catch (Exception e) {
+			shutdown();
+		}
     }
 	
 	/**
@@ -46,20 +71,20 @@ public class OutboundQueueStack extends Thread {
 	 */
 	public void setProperty(PushServiceProperty prop) {
 		String serviceId = prop.getServiceId();
-		if(serviceId.equals(ServiceType.TCPSOCKET) || serviceId.equals(ServiceType.WEBSOCKET)) {
-			serviceGroup.put(serviceId, new ServiceInfo(prop, 0));
-		}
+		if (serviceId.equals(ServiceType.TCPSOCKET) || serviceId.equals(ServiceType.WEBSOCKET))
+			serviceGroup.put(serviceId, new ServiceInfo(prop));
 	}
 	
 	/**
 	 * connection socket
 	 * 
 	 */
-	public void connection(String serviceId) {
+	public ServiceInfo connection(String serviceId) {
 		if (!serviceGroup.containsKey(serviceId))
-            return;
+            return null;
 		ServiceInfo sInfo = serviceGroup.get(serviceId);
 		sInfo.increase();
+		return sInfo;
 	}
 	
 	/**
@@ -78,19 +103,30 @@ public class OutboundQueueStack extends Thread {
 	 * 
 	 * @param msg : save message
 	 */
-	public void pushStack(PushMessage msg, boolean isEmpty) {
+	public void pushStack(PushMessage msg, Map<ChannelId, OutboundQueue> queueGroup) {
 		String serviceId = msg.getServiceId();
 		if (!serviceGroup.containsKey(serviceId))
             return;
 		
-		if (isEmpty) {
-			stack.add(msg);
+		ServiceInfo sInfo = serviceGroup.get(serviceId);
+		PushServiceProperty prop = sInfo.getProperty();
+		int clearTime = prop.getOutboundQueueClearTime(); // minute
+		
+		commonUtil.mutexStack.lock();
+		if (queueGroup.isEmpty()) {
+			stack.add(new MessageInfo(msg, clearTime));
 		} else {
-			// 최대 연결 허용 개수만큼 보관
-			ServiceInfo sInfo = serviceGroup.get(serviceId);
-			if (sInfo.isStock())
-				stack.add(msg);
+			// 지금 보낸 클라이언트 IP는 추가하고, 최대 연결 허용 개수만큼 보관
+			if (sInfo.isStock()) {
+				MessageInfo msgInfo = new MessageInfo(msg, clearTime);
+				queueGroup.forEach((channelId, queue) -> {
+					Channel channel = queue.getChannel();
+					msgInfo.addSentAddr(channel.remoteAddress().toString());
+				});
+				stack.add(msgInfo);
+			}
 		}
+		commonUtil.mutexStack.unlock();
 	}
 
 	/**
@@ -103,39 +139,54 @@ public class OutboundQueueStack extends Thread {
 		try {
 			if (serviceId == null || serviceId.isEmpty() || channel == null)
 				throw new Exception();
+				
+			ServiceInfo sInfo = connection(serviceId);
+			if(sInfo == null)
+				return;
 			
-			if (!serviceGroup.containsKey(serviceId))
-	            return;
-			
-			connection(serviceId);
-			ServiceInfo sInfo = serviceGroup.get(serviceId);
-			
-			Vector<PushMessage> stock = new Vector<PushMessage>();
-			for(int ix=0; ix < stack.size(); ++ix) {
-				PushMessage msg = stack.get(ix);
-				String sid = msg.getServiceId();
+			commonUtil.mutexStack.lock();
+			Vector<MessageInfo> stock = new Vector<MessageInfo>();
+			stack.forEach(msgInfo -> {
+				String sid = msgInfo.getServiceId();
 				if (sid.equals(serviceId)) {
-					queue.offer(new ChannelInfo(channel, msg));
+					queue.offer(new ChannelInfo(channel, msgInfo));
 					if (sInfo.isStock())
-						stock.add(msg);
+						stock.add(msgInfo);
 				} else
-					stock.add(msg);
-			}
+					stock.add(msgInfo);
+			});
 			stack = stock;
+			commonUtil.mutexStack.unlock();
 		} catch (Exception e) {
 			LOG.error("[OutboundQueueStack popStack] >>>>>");
 		}
 	}
 	
     /**
+     * message clear check
+     */
+	public void clearCheck() {
+		commonUtil.mutexStack.lock();
+		Vector<MessageInfo> stock = new Vector<MessageInfo>();
+		stack.forEach(mInfo -> {
+			if(mInfo.isStock())
+				stock.add(mInfo);
+		});
+		stack = stock;
+		commonUtil.mutexStack.unlock();
+	}
+	
+    /**
      * queue stack stop
      */
-    public void shutdown() {
-        this.interrupt();
-    }
+	public void shutdown() {
+		this.interrupt();
+		if (this.timer != null)
+			this.timer.cancel();
+	}
     
     /**
-     * 큐에서 메시지를 추출하여 클라이언트 채널에 전송
+     * 큐에서 미전송 메시지를 추출하여 클라이언트 채널에 전송
      * @see java.lang.Thread#run()
      */
     @Override
@@ -149,12 +200,66 @@ public class OutboundQueueStack extends Thread {
 			}
 			
 			if (cInfo != null) {
-				cInfo.sendMessage();
-				PushMessage msg = cInfo.getMessage();
-				LOG.info("[{}] [{}] [{}] Pop Stack {}", getName(), msg.getServiceId(), msg.getClientId(), msg);
+				PushMessage msg = cInfo.sendMessage();
+				if(msg != null)
+					LOG.info("[{}] [{}] [{}] Pop Stack {}", getName(), msg.getServiceId(), msg.getClientId(), msg);
 			}
 		}
 	}
+    
+    ////////////////////////////////////////////////////////////////////////////////
+    // class MessageInfo
+    //
+    public class MessageInfo {
+    	private final PushMessage 	message;
+    	private int 				clearTime; 		// min
+    	private Vector<String>		sentAddr;		
+    	
+    	public MessageInfo(PushMessage message, int clearMinTime) {
+    		this.message = message;    		
+    		long time = System.currentTimeMillis();
+    		this.clearTime = (int)(new Date(time).getTime() / MINUTE_MS) + clearMinTime;
+    		this.sentAddr = new Vector<String>();
+    	}
+    	
+    	public boolean isStock() {
+    		long time = System.currentTimeMillis();
+    		int currentTime = (int)(new Date(time).getTime() / MINUTE_MS);
+    		return (this.clearTime > currentTime);
+    	}
+		
+		public void addSentAddr(String addr) {
+			String rip = extractOnlyIP(addr);
+			if(!rip.isEmpty())
+				sentAddr.add(rip);
+		}
+		
+		public boolean isAreadySent(String addr) {
+			String rip = extractOnlyIP(addr);
+			return sentAddr.contains(rip);
+		}
+		
+		public PushMessage getMessage() {
+			return message;
+		}
+		
+		public String getServiceId() {
+			return message.getServiceId();
+		}
+		
+		private String extractOnlyIP(String addr) {
+			if(addr == null || addr.isEmpty())
+				return addr;
+			
+			int pos = addr.indexOf("/");
+			if(pos != -1)
+				addr = addr.substring(pos + 1, addr.length());
+			pos = addr.lastIndexOf(":");
+			if(pos != -1)
+				addr = addr.substring(0, pos);
+			return addr;
+		}
+    } 
     
     ////////////////////////////////////////////////////////////////////////////////
     // class ServiceInfo
@@ -163,9 +268,9 @@ public class OutboundQueueStack extends Thread {
     	private final PushServiceProperty property;
     	private int connectionCount;
     	
-    	public ServiceInfo(PushServiceProperty property, int count) {
+    	public ServiceInfo(PushServiceProperty property) {
     		this.property = property;
-    		this.connectionCount = count;
+    		this.connectionCount = 0;
     	}
     	
     	public void increase() {
@@ -181,6 +286,10 @@ public class OutboundQueueStack extends Thread {
     	public boolean isStock() {
     		return (connectionCount < property.getOutboundConnectionNumber());
     	}
+    	
+    	public PushServiceProperty getProperty() {
+    		return property;
+    	}
     }    
     
     ////////////////////////////////////////////////////////////////////////////////
@@ -188,26 +297,31 @@ public class OutboundQueueStack extends Thread {
     //
     public class ChannelInfo {
     	private final Channel channel;
-    	private final PushMessage message;
+    	private final MessageInfo msgInfo;
     	
-    	public ChannelInfo(Channel channel, PushMessage message) {
+    	public ChannelInfo(Channel channel, MessageInfo mInfo) {
     		this.channel = channel;
-    		this.message = message;
+    		this.msgInfo = mInfo;
     	}
     	
-    	public void sendMessage() {
-    		if(channel != null) {
-    			channel.writeAndFlush(message);
-    			try {
-					Thread.sleep(500);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-    		}
-    	}
-    	
-    	public PushMessage getMessage() {
-    		return message;
-    	}
+		public PushMessage sendMessage() {
+			if (channel == null)
+				return null;
+
+			String addr = channel.remoteAddress().toString();
+			if (msgInfo.isAreadySent(addr))
+				return null;
+			
+			PushMessage msg = msgInfo.getMessage();
+			channel.writeAndFlush(msg);
+			msgInfo.addSentAddr(addr);
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+
+			return msg;
+		}
     }
 }
