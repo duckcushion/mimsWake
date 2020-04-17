@@ -60,9 +60,9 @@ public class OutboundWebSocketServer extends OutboundServer {
             @Override
             public void initChannel(SocketChannel socketChannel) {
                 ChannelPipeline pipeline = socketChannel.pipeline();
-//                if(sslCtx != null) { // SSL
-//                	pipeline.addLast(sslCtx.newHandler(socketChannel.alloc()));
-//                }
+                if(sslCtx != null) { // SSL
+                	pipeline.addLast(sslCtx.newHandler(socketChannel.alloc()));
+                }
                 pipeline.addLast(new HttpServerCodec());
                 pipeline.addLast(new HttpObjectAggregator(65536));
                 pipeline.addLast(new WebSocketServerCompressionHandler());

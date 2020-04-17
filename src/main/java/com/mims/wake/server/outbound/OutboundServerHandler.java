@@ -73,36 +73,36 @@ public class OutboundServerHandler extends SimpleChannelInboundHandler<PushMessa
      */
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, PushMessage msg) {
-//    	logger.info("[OutboundServerHandler:{}] received {} from {}", property.getServiceId(), msg, ctx.channel());
-//
-//        String groupId = msg.getGroupId();
-//        if (groupId != null) {
-//            ctx.channel().attr(PushConstant.GROUP_ID).set(groupId);
-//            logger.info("[OutboundServerHandler:{}] set group id [{}] to {}", property.getServiceId(), groupId, ctx.channel());
-//        }
-//
-//        String clientId = msg.getClientId();
-//        if (clientId != null) {
-//            ctx.channel().attr(PushConstant.CLIENT_ID).set(clientId);
-//            logger.info("[OutboundServerHandler:{}] set client id [{}] to {}", property.getServiceId(), clientId, ctx.channel());
-//        }
-//        
-//        outboundQueueManager.popStack(property.getServiceId(), ctx.channel()); // pop stack message
+    	logger.info("[OutboundServerHandler:{}] received {} from {}", property.getServiceId(), msg, ctx.channel());
+
+        String groupId = msg.getGroupId();
+        if (groupId != null) {
+            ctx.channel().attr(PushConstant.GROUP_ID).set(groupId);
+            logger.info("[OutboundServerHandler:{}] set group id [{}] to {}", property.getServiceId(), groupId, ctx.channel());
+        }
+
+        String clientId = msg.getClientId();
+        if (clientId != null) {
+            ctx.channel().attr(PushConstant.CLIENT_ID).set(clientId);
+            logger.info("[OutboundServerHandler:{}] set client id [{}] to {}", property.getServiceId(), clientId, ctx.channel());
+        }
+        
+        outboundQueueManager.popStack(property.getServiceId(), ctx.channel()); // pop stack message
     	
     	// [+] SSL TEST
-		if (msg instanceof HttpRequest) {
-			HttpRequest req = (HttpRequest) msg;
-			boolean keepAlive = HttpUtil.isKeepAlive(req);
-			FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_0, HttpResponseStatus.OK, Unpooled.wrappedBuffer(CONTENT));
-			response.headers().set(CONTENT_TYPE, "text/plain");
-			response.headers().setInt(CONTENT_LENGTH, response.content().readableBytes());
-			if (!keepAlive) {
-				ctx.write(response).addListener(ChannelFutureListener.CLOSE);
-			} else {
-				response.headers().set(CONNECTION, KEEP_ALIVE);
-				ctx.write(response);
-			}
-		}
+//		if (msg instanceof HttpRequest) {
+//			HttpRequest req = (HttpRequest) msg;
+//			boolean keepAlive = HttpUtil.isKeepAlive(req);
+//			FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_0, HttpResponseStatus.OK, Unpooled.wrappedBuffer(CONTENT));
+//			response.headers().set(CONTENT_TYPE, "text/plain");
+//			response.headers().setInt(CONTENT_LENGTH, response.content().readableBytes());
+//			if (!keepAlive) {
+//				ctx.write(response).addListener(ChannelFutureListener.CLOSE);
+//			} else {
+//				response.headers().set(CONNECTION, KEEP_ALIVE);
+//				ctx.write(response);
+//			}
+//		}
 		// [-] SSL TEST
     }
 
