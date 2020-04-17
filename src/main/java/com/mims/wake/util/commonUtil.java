@@ -163,7 +163,7 @@ public class commonUtil {
 	public static String getCurrentPath(String subPath) {
 		String token = pathToken();
 		String[] arrWord = subPath.split("");
-		if(arrWord[0].equals(token))
+		if(arrWord.length > 0 && arrWord[0].equals(token))
 			subPath.replaceFirst(token, "");
 		return System.getProperty("user.dir") + token + subPath;
 	}

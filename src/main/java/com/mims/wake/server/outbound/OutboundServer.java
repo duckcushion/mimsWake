@@ -66,7 +66,7 @@ public abstract class OutboundServer {
 					.childOption(ChannelOption.TCP_NODELAY, true);
 
 			bootstrap.bind(property.getOutboundServerPort()).sync();
-
+			
 			logger.info("[OutboundServer:{}] started, listening on port {}", property.getServiceId(),
 					property.getOutboundServerPort());
 
