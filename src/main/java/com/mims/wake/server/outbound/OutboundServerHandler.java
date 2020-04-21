@@ -8,17 +8,8 @@ import com.mims.wake.common.PushMessage;
 import com.mims.wake.server.property.PushServiceProperty;
 import com.mims.wake.server.queue.OutboundQueueManager;
 
-import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpUtil;
-import io.netty.handler.codec.http.HttpVersion;
-import io.netty.util.AsciiString;
 
 /**
  * Outbound Server와 클라이언트간 채널에서 발생하는 이벤트 처리용 핸들러
@@ -29,14 +20,6 @@ public class OutboundServerHandler extends SimpleChannelInboundHandler<PushMessa
 
     private final PushServiceProperty property;					// Push Service property
     private final OutboundQueueManager outboundQueueManager;	// OutboundQueue 인스턴스 관리자
-    
-    // [+] SSL TEST
-    private static final byte[] CONTENT = { 'H', 'e', 'l', 'l', 'o', ' ', 'W', 'o', 'r', 'l', 'd' };
-    private static final AsciiString CONTENT_TYPE = AsciiString.cached("Content-Type");
-    private static final AsciiString CONTENT_LENGTH = AsciiString.cached("Content-Length");
-    private static final AsciiString CONNECTION = AsciiString.cached("Connection");
-    private static final AsciiString KEEP_ALIVE = AsciiString.cached("keep-alive");
-    // [-] SSL TEST
 
     /**
      * constructor with parameters
@@ -88,22 +71,6 @@ public class OutboundServerHandler extends SimpleChannelInboundHandler<PushMessa
         }
         
         outboundQueueManager.popStack(property.getServiceId(), ctx.channel()); // pop stack message
-    	
-    	// [+] SSL TEST
-//		if (msg instanceof HttpRequest) {
-//			HttpRequest req = (HttpRequest) msg;
-//			boolean keepAlive = HttpUtil.isKeepAlive(req);
-//			FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_0, HttpResponseStatus.OK, Unpooled.wrappedBuffer(CONTENT));
-//			response.headers().set(CONTENT_TYPE, "text/plain");
-//			response.headers().setInt(CONTENT_LENGTH, response.content().readableBytes());
-//			if (!keepAlive) {
-//				ctx.write(response).addListener(ChannelFutureListener.CLOSE);
-//			} else {
-//				response.headers().set(CONNECTION, KEEP_ALIVE);
-//				ctx.write(response);
-//			}
-//		}
-		// [-] SSL TEST
     }
 
     /**

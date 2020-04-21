@@ -1,9 +1,28 @@
 package com.mims.wake.server.outbound;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,6 +45,7 @@ import io.netty.handler.codec.http.websocketx.extensions.compression.WebSocketSe
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 /**
@@ -36,7 +56,7 @@ public class OutboundWebSocketServer extends OutboundServer {
 
     private final PushServiceProperty property;					// Push Service property
     private final OutboundQueueManager outboundQueueManager;	// OutboundQueue 인스턴스 관리자
-    private final SslContext sslCtx = getCertificate(); 		// SSL
+    private final SslContext sslCtx = getCertificate();			// SSL
 
     /**
      * constructor with parameters
@@ -58,11 +78,17 @@ public class OutboundWebSocketServer extends OutboundServer {
     protected ChannelInitializer<SocketChannel> getChannelInitializer() {
         return new ChannelInitializer<SocketChannel>() {
             @Override
-            public void initChannel(SocketChannel socketChannel) {
+            public void initChannel(SocketChannel socketChannel) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, KeyManagementException {
                 ChannelPipeline pipeline = socketChannel.pipeline();
-                if(sslCtx != null) { // SSL
-                	pipeline.addLast(sslCtx.newHandler(socketChannel.alloc()));
-                }
+				if (sslCtx != null) { // SSL
+					//pipeline.addLast("ssl", sslCtx.newHandler(socketChannel.alloc()));
+					SSLContext sc = createSSLContext();
+					SSLEngine engine = sc.createSSLEngine();
+					engine.setEnabledCipherSuites(sc.getServerSocketFactory().getSupportedCipherSuites());
+					engine.setUseClientMode(false);
+					engine.setNeedClientAuth(false);
+					pipeline.addLast("ssl", new SslHandler(engine));
+				}
                 pipeline.addLast(new HttpServerCodec());
                 pipeline.addLast(new HttpObjectAggregator(65536));
                 pipeline.addLast(new WebSocketServerCompressionHandler());
@@ -81,22 +107,24 @@ public class OutboundWebSocketServer extends OutboundServer {
      * @return SslContext 인스턴스
      * @see 
      */
-    private SslContext getCertificate() {    	
+    private SslContext getCertificate() {
+    	String subPath = "ssl" + commonUtil.pathToken();
 		String path = commonUtil.getCurrentPath("");
-		String certFile = path + "service.crt";
-		String keyFile = path + "service.pkcs8.key";
-		String caFile = path + "rootCA.pem";
+		String certFile = path + subPath + "service.crt";
+		String keyFile = path + subPath + "service.pkcs8.key";
+		String caFile = path + subPath + "rootCA.pem";
 
-		File cert = new File(certFile); // 인증서 파일
-		File key = new File(keyFile); // 개인키 파일
-		File ca = new File(caFile); 
-		if (cert.exists() && key.exists() && ca.exists()) {
+		File cert = new File(certFile);			// 인증서 파일
+		File privateKey = new File(keyFile);	// 개인키 파일
+		File caKey = new File(caFile); 			// CA-key
+		if (cert.exists() && privateKey.exists() && caKey.exists()) {
 			try {
-				return SslContextBuilder.forServer(cert, key)
+				return SslContextBuilder.forServer(cert, privateKey)
 						.clientAuth(ClientAuth.REQUIRE)
-						.trustManager(ca)
+						.trustManager(caKey)
 						.build();
 			} catch (SSLException e) {
+				logger.error("[OutboundWebSocketServer: Error Initialization Certification!!]");
 				e.printStackTrace();
 				return null;
 			}
@@ -120,4 +148,95 @@ public class OutboundWebSocketServer extends OutboundServer {
 			return null;
 		}
     }
+    
+	private SSLContext createSSLContext() {
+		try {
+			String subPath = "ssl" + commonUtil.pathToken();
+			String path = commonUtil.getCurrentPath("");
+			String jksFile = path + subPath + "ca.jks";
+			
+			String password = "123456";
+			KeyStore ks = KeyStore.getInstance("JKS"); // "JKS"
+			InputStream ksInputStream = new FileInputStream(jksFile);
+			ks.load(ksInputStream, password.toCharArray());
+
+			KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+			kmf.init(ks, password.toCharArray());
+
+			SSLContext sslContext = SSLContext.getInstance("TLS");
+			sslContext.init(kmf.getKeyManagers(), null, null);
+			return sslContext;
+		} catch (Exception e) {
+			System.err.println(e.toString());
+		}
+		return null;
+	}
+    
+	private void aaa() {
+		String ksName = "ssl\\client\\ca.jks";
+		char ksPass[] = "123456".toCharArray();
+		char ctPass[] = "ssl\\service.crt".toCharArray();
+		try {
+			KeyStore ks = KeyStore.getInstance("JKS");
+			ks.load(new FileInputStream(ksName), ksPass);
+			KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
+			kmf.init(ks, ctPass);
+			SSLContext sc = SSLContext.getInstance("TLS");
+			sc.init(kmf.getKeyManagers(), null, null);
+			
+			SSLServerSocketFactory ssf = sc.getServerSocketFactory();
+			SSLServerSocket s = (SSLServerSocket)ssf.createServerSocket(8888);
+			printServerSocketInfo(s);
+			SSLSocket c = (SSLSocket)s.accept();
+			printSocketInfo(c);
+			BufferedWriter w = new BufferedWriter(new OutputStreamWriter(c.getOutputStream()));
+			BufferedReader r = new BufferedReader(new InputStreamReader(c.getInputStream()));
+			String m = "Welcome to SSL Reverse Echo Server." + " Please type in some words.";
+			w.write(m, 0, m.length());
+			w.newLine();
+			w.flush();
+			while ((m = r.readLine()) != null) {
+				if (m.equals("."))
+					break;
+				char[] a = m.toCharArray();
+				int n = a.length;
+				for (int i = 0; i < n / 2; i++) {
+					char t = a[i];
+					a[i] = a[n - 1 - i];
+					a[n - i - 1] = t;
+				}
+				w.write(a, 0, n);
+				w.newLine();
+				w.flush();
+			}
+			w.close();
+			r.close();
+			c.close();
+			s.close();
+		} catch (Exception e) {
+			System.err.println(e.toString());
+		}
+	}
+
+	private void printSocketInfo(SSLSocket s) {
+		System.out.println("Socket class: " + s.getClass());
+		System.out.println("   Remote address = " + s.getInetAddress().toString());
+		System.out.println("   Remote port = " + s.getPort());
+		System.out.println("   Local socket address = " + s.getLocalSocketAddress().toString());
+		System.out.println("   Local address = " + s.getLocalAddress().toString());
+		System.out.println("   Local port = " + s.getLocalPort());
+		System.out.println("   Need client authentication = " + s.getNeedClientAuth());
+		SSLSession ss = s.getSession();
+		System.out.println("   Cipher suite = " + ss.getCipherSuite());
+		System.out.println("   Protocol = " + ss.getProtocol());
+	}
+
+	private void printServerSocketInfo(SSLServerSocket s) {
+		System.out.println("Server socket class: " + s.getClass());
+		System.out.println("   Socket address = " + s.getInetAddress().toString());
+		System.out.println("   Socket port = " + s.getLocalPort());
+		System.out.println("   Need client authentication = " + s.getNeedClientAuth());
+		System.out.println("   Want client authentication = " + s.getWantClientAuth());
+		System.out.println("   Use client mode = " + s.getUseClientMode());
+	}
 }

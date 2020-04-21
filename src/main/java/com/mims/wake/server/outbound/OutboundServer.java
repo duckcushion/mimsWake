@@ -59,6 +59,11 @@ public abstract class OutboundServer {
 		bossGroup = new NioEventLoopGroup();
 		workerGroup = new NioEventLoopGroup();
 		try {
+//			if (property.getOutboundServerType().equals(ServerType.WEBSOCKET)) {
+//				System.setProperty("javax.net.ssl.trustStore", "ssl\\ca.jks");
+//				System.setProperty("javax.net.ssl.keyStore", "ssl\\ca.jks");
+//				System.setProperty("javax.net.ssl.keyStorePassword", "123456");
+//			}			
 			ServerBootstrap bootstrap = new ServerBootstrap();
 			bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
 					.handler(new LoggingHandler(LogLevel.INFO)).childHandler(getChannelInitializer())
