@@ -2,12 +2,16 @@ package com.mims.wake.server.outbound;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -33,7 +37,10 @@ import com.mims.wake.common.WebSocketFrameDecoder;
 import com.mims.wake.common.WebSocketFrameEncoder;
 import com.mims.wake.server.property.PushServiceProperty;
 import com.mims.wake.server.queue.OutboundQueueManager;
+import com.mims.wake.util.Base64Coder;
 import com.mims.wake.util.commonUtil;
+import com.mysql.cj.protocol.Security;
+import com.tmax.tibero.jdbc.data.charset.Charset;
 
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
@@ -82,7 +89,7 @@ public class OutboundWebSocketServer extends OutboundServer {
                 ChannelPipeline pipeline = socketChannel.pipeline();
 				if (sslCtx != null) { // SSL
 					//pipeline.addLast("ssl", sslCtx.newHandler(socketChannel.alloc()));
-					SSLContext sc = createSSLContext();
+					SSLContext sc = createSSLContext2nd();
 					SSLEngine engine = sc.createSSLEngine();
 					engine.setEnabledCipherSuites(sc.getServerSocketFactory().getSupportedCipherSuites());
 					engine.setUseClientMode(false);
@@ -110,13 +117,13 @@ public class OutboundWebSocketServer extends OutboundServer {
     private SslContext getCertificate() {
     	String subPath = "ssl" + commonUtil.pathToken();
 		String path = commonUtil.getCurrentPath("");
-		String certFile = path + subPath + "service.crt";
-		String keyFile = path + subPath + "service.pkcs8.key";
-		String caFile = path + subPath + "rootCA.pem";
+		String certFile = path + subPath + "service.crt"; 	// 인증서 파
+		String keyFile = path + subPath + "service.pkcs8.key";	// 개인키 파
+		String caFile = path + subPath + "rootCA.pem";		// CA-Key
 
 		File cert = new File(certFile);			// 인증서 파일
 		File privateKey = new File(keyFile);	// 개인키 파일
-		File caKey = new File(caFile); 			// CA-key
+		File caKey = new File(caFile); 			// CA-Key
 		if (cert.exists() && privateKey.exists() && caKey.exists()) {
 			try {
 				return SslContextBuilder.forServer(cert, privateKey)
@@ -151,9 +158,9 @@ public class OutboundWebSocketServer extends OutboundServer {
     
 	private SSLContext createSSLContext() {
 		try {
-			String subPath = "ssl" + commonUtil.pathToken();
+			String subPath = "certs" + commonUtil.pathToken();
 			String path = commonUtil.getCurrentPath("");
-			String jksFile = path + subPath + "ca.jks";
+			String jksFile = path + subPath + "clientcert.jks";
 			
 			String password = "123456";
 			KeyStore ks = KeyStore.getInstance("JKS"); // "JKS"
@@ -170,6 +177,33 @@ public class OutboundWebSocketServer extends OutboundServer {
 			System.err.println(e.toString());
 		}
 		return null;
+	}
+	
+	private SSLContext createSSLContext2nd() {
+		try {
+			String subPath = "certs" + commonUtil.pathToken();
+			String path = commonUtil.getCurrentPath("");
+			String jksFile = path + subPath + "clientcert.jks";
+			String data = readFile(jksFile);
+			String password = "123456";
+			
+			String algorithm = KeyManagerFactory.getDefaultAlgorithm();
+			SSLContext serverContext = SSLContext.getInstance("TLSv1.2"); // JDK 7 버전부터 지원합니다.
+			final KeyStore ks = KeyStore.getInstance("JKS");
+			ks.load(new ByteArrayInputStream(Base64Coder.decode(data)), password.toCharArray());
+			final KeyManagerFactory kmf = KeyManagerFactory.getInstance(algorithm);
+			kmf.init(ks, "123456".toCharArray());
+			serverContext.init(kmf.getKeyManagers(), null, null);
+			return serverContext;
+		} catch (Exception e) {
+			System.err.println(e.toString());
+		}
+		return null;
+	}
+	
+	private String readFile(String path) throws IOException {
+		byte[] encoded = Files.readAllBytes(Paths.get(path));
+		return new String(encoded);
 	}
     
 	private void aaa() {
