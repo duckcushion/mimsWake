@@ -5,7 +5,6 @@ import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -39,8 +38,6 @@ import com.mims.wake.server.property.PushServiceProperty;
 import com.mims.wake.server.queue.OutboundQueueManager;
 import com.mims.wake.util.Base64Coder;
 import com.mims.wake.util.commonUtil;
-import com.mysql.cj.protocol.Security;
-import com.tmax.tibero.jdbc.data.charset.Charset;
 
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
@@ -63,7 +60,10 @@ public class OutboundWebSocketServer extends OutboundServer {
 
     private final PushServiceProperty property;					// Push Service property
     private final OutboundQueueManager outboundQueueManager;	// OutboundQueue 인스턴스 관리자
-    private final SslContext sslCtx = getCertificate();			// SSL
+	// [+] SSL
+	private final SslContext sslCtx1st = getCertificate();
+	private final SSLContext sslCtx2nd = null;//createSSLContext2nd();
+	// [-] SSL
 
     /**
      * constructor with parameters
@@ -87,15 +87,17 @@ public class OutboundWebSocketServer extends OutboundServer {
             @Override
             public void initChannel(SocketChannel socketChannel) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, KeyManagementException {
                 ChannelPipeline pipeline = socketChannel.pipeline();
-				if (sslCtx != null) { // SSL
-					//pipeline.addLast("ssl", sslCtx.newHandler(socketChannel.alloc()));
-					SSLContext sc = createSSLContext2nd();
-					SSLEngine engine = sc.createSSLEngine();
-					engine.setEnabledCipherSuites(sc.getServerSocketFactory().getSupportedCipherSuites());
+				// [+] SSL
+				if (sslCtx1st != null) {
+					pipeline.addLast("ssl", sslCtx1st.newHandler(socketChannel.alloc()));
+				} else if (sslCtx2nd != null) {
+					SSLEngine engine = sslCtx2nd.createSSLEngine();
+					engine.setEnabledCipherSuites(sslCtx2nd.getServerSocketFactory().getSupportedCipherSuites());
 					engine.setUseClientMode(false);
 					engine.setNeedClientAuth(false);
 					pipeline.addLast("ssl", new SslHandler(engine));
 				}
+				// [-] SSL
                 pipeline.addLast(new HttpServerCodec());
                 pipeline.addLast(new HttpObjectAggregator(65536));
                 pipeline.addLast(new WebSocketServerCompressionHandler());
@@ -117,13 +119,13 @@ public class OutboundWebSocketServer extends OutboundServer {
     private SslContext getCertificate() {
     	String subPath = "ssl" + commonUtil.pathToken();
 		String path = commonUtil.getCurrentPath("");
-		String certFile = path + subPath + "service.crt"; 	// 인증서 파
-		String keyFile = path + subPath + "service.pkcs8.key";	// 개인키 파
-		String caFile = path + subPath + "rootCA.pem";		// CA-Key
+		String certFile = path + subPath + "service.crt"; 		// 인증서 파일
+		String keyFile = path + subPath + "service.pkcs8.key";	// 개인키 파일
+		String caFile = path + subPath + "rootCA.pem";			// CA-Key
 
-		File cert = new File(certFile);			// 인증서 파일
-		File privateKey = new File(keyFile);	// 개인키 파일
-		File caKey = new File(caFile); 			// CA-Key
+		File cert = new File(certFile);
+		File privateKey = new File(keyFile);
+		File caKey = new File(caFile);
 		if (cert.exists() && privateKey.exists() && caKey.exists()) {
 			try {
 				return SslContextBuilder.forServer(cert, privateKey)
