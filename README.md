@@ -65,6 +65,11 @@ $cd target
 $java -jar websocket.war
 
 # port that this app use
-* TCP Inbound  : 13100
-* TCP Outbound : 13101
-* WebSocket Outbound : 13102
+* InBound  TCP  : 13100
+* InBound  File : ~/SharedStorage
+* OutBound WebSocket : 13101
+* OutBound TCP  : 13102
+* OutBound File : ~/SharedStorage
+
+# SSL - netty에서 KEY 파일만 pkcs8 포맷 변환
+* openssl pkcs8 -topk8 -inform PEM -outform PEM -in service.key -out service.pkcs8.key -nocrypt
